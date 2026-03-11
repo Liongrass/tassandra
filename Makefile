@@ -7,8 +7,8 @@ PROTOC_GEN_GO   ?= protoc-gen-go
 PROTOC_GEN_GRPC ?= protoc-gen-go-grpc
 SQLC            ?= sqlc
 
-DAEMON_PKG = ./daemon
-CLI_PKG    = ./cli
+DAEMON_PKG = ./tassandra
+CLI_PKG    = ./tassandra-cli
 
 .PHONY: all build install test vet proto sqlc
 

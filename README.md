@@ -208,8 +208,8 @@ make clean         # remove bin/
 ### Project layout
 
 ```
-daemon/             daemon entry point and config
-cli/                CLI client
+tassandra/          daemon entry point and config
+tassandra-cli/      CLI client
 oracle/             poll loop, median aggregation, subscriptions
 pricefeed/          exchange adapters (Binance, Kraken, Coinbase, Bitstamp)
 pricestore/         SQLite store and sqlc-generated query code
