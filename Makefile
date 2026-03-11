@@ -1,41 +1,22 @@
 GO      ?= go
-GOBUILD  = $(GO) build
 GOTEST   = $(GO) test
 GOINSTALL = $(GO) install
 
-PROTOC         ?= protoc
-PROTOC_GEN_GO  ?= protoc-gen-go
+PROTOC          ?= protoc
+PROTOC_GEN_GO   ?= protoc-gen-go
 PROTOC_GEN_GRPC ?= protoc-gen-go-grpc
-SQLC           ?= sqlc
-
-BIN_DIR    = bin
-DAEMON     = $(BIN_DIR)/tassandra
-CLI        = $(BIN_DIR)/tassandra-cli
+SQLC            ?= sqlc
 
 DAEMON_PKG = ./daemon
 CLI_PKG    = ./cli
 
-.PHONY: all build daemon cli install test vet proto sqlc clean
+.PHONY: all build install test vet proto sqlc
 
 all: build
 
-# ── Build (local, output to bin/) ─────────────────────────────────────────────
+# ── Build / Install (to $GOPATH/bin) ─────────────────────────────────────────
 
-build: daemon cli
-
-daemon:
-	@mkdir -p $(BIN_DIR)
-	$(GOBUILD) -o $(DAEMON) $(DAEMON_PKG)
-	@echo "Built $(DAEMON)"
-
-cli:
-	@mkdir -p $(BIN_DIR)
-	$(GOBUILD) -o $(CLI) $(CLI_PKG)
-	@echo "Built $(CLI)"
-
-# ── Install (to $GOPATH/bin) ──────────────────────────────────────────────────
-
-install:
+build install:
 	$(GOINSTALL) $(DAEMON_PKG)
 	$(GOINSTALL) $(CLI_PKG)
 	@echo "Installed tassandra and tassandra-cli"
@@ -63,9 +44,3 @@ proto:
 sqlc:
 	cd pricestore && $(SQLC) generate
 	@echo "Regenerated sqlc code"
-
-# ── Clean ─────────────────────────────────────────────────────────────────────
-
-clean:
-	rm -rf $(BIN_DIR)
-	@echo "Cleaned build artifacts"

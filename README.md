@@ -32,17 +32,16 @@ prices available over two interfaces:
 
 ## Building
 
-To install both binaries into `$GOPATH/bin` (typically `~/go/bin`):
-
-```bash
-make install
-```
-
-To build local test binaries into `bin/` without installing:
-
 ```bash
 make build
 ```
+
+This installs both binaries into `$GOPATH/bin` (typically `~/go/bin`):
+
+| Binary | Description |
+|---|---|
+| `tassandra` | The daemon |
+| `tassandra-cli` | The CLI client |
 
 ## Configuration
 
