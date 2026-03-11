@@ -38,14 +38,14 @@ type config struct {
 	Asset    assetSection   `group:"Asset"    namespace:"asset"`
 }
 
-// exchangeConfig lists the fiat currencies to poll for each exchange adapter.
-// An exchange is enabled only when at least one currency is listed for it.
-// Repeat the flag for each currency, e.g.: binance=USD binance=EUR
+// exchangeConfig controls which exchanges are active and which currencies each
+// should poll. Each field is a comma-separated list of fiat currencies
+// (e.g. "USD,EUR,GBP"). An empty string disables the exchange.
 type exchangeConfig struct {
-	Binance  []string `long:"binance"  description:"Enable Binance for this currency (repeat for multiple)"`
-	Kraken   []string `long:"kraken"   description:"Enable Kraken for this currency (repeat for multiple)"`
-	Coinbase []string `long:"coinbase" description:"Enable Coinbase for this currency (repeat for multiple)"`
-	Bitstamp []string `long:"bitstamp" description:"Enable Bitstamp for this currency (repeat for multiple)"`
+	Binance  string `long:"binance"  description:"Comma-separated currencies for Binance (e.g. USD,EUR,GBP); empty disables"`
+	Kraken   string `long:"kraken"   description:"Comma-separated currencies for Kraken (e.g. USD,EUR,GBP); empty disables"`
+	Coinbase string `long:"coinbase" description:"Comma-separated currencies for Coinbase (e.g. USD,EUR,GBP); empty disables"`
+	Bitstamp string `long:"bitstamp" description:"Comma-separated currencies for Bitstamp (e.g. USD,EUR,GBP); empty disables"`
 }
 
 // assetSection holds zero or more asset configuration strings. Each entry

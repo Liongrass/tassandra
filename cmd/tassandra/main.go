@@ -170,38 +170,53 @@ func run() error {
 func buildFeeds(cfg *config) []oracle.FeedConfig {
 	const timeout = 10 * time.Second
 
-	toCurrencies := func(ss []string) []pricefeed.FiatCurrency {
-		out := make([]pricefeed.FiatCurrency, len(ss))
-		for i, s := range ss {
-			out[i] = pricefeed.FiatCurrency(strings.ToUpper(s))
+	// parseCurrencies splits a comma-separated currency string into a
+	// deduplicated slice of FiatCurrency values. Returns nil if s is empty.
+	parseCurrencies := func(s string) []pricefeed.FiatCurrency {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return nil
+		}
+		parts := strings.Split(s, ",")
+		seen := make(map[pricefeed.FiatCurrency]struct{}, len(parts))
+		out := make([]pricefeed.FiatCurrency, 0, len(parts))
+		for _, p := range parts {
+			c := pricefeed.FiatCurrency(strings.ToUpper(strings.TrimSpace(p)))
+			if c == "" {
+				continue
+			}
+			if _, ok := seen[c]; !ok {
+				seen[c] = struct{}{}
+				out = append(out, c)
+			}
 		}
 		return out
 	}
 
 	feeds := make([]oracle.FeedConfig, 0, 4)
 
-	if len(cfg.Exchange.Binance) > 0 {
+	if currencies := parseCurrencies(cfg.Exchange.Binance); len(currencies) > 0 {
 		feeds = append(feeds, oracle.FeedConfig{
 			Feed:       pricefeed.NewBinanceFeed(timeout),
-			Currencies: toCurrencies(cfg.Exchange.Binance),
+			Currencies: currencies,
 		})
 	}
-	if len(cfg.Exchange.Kraken) > 0 {
+	if currencies := parseCurrencies(cfg.Exchange.Kraken); len(currencies) > 0 {
 		feeds = append(feeds, oracle.FeedConfig{
 			Feed:       pricefeed.NewKrakenFeed(timeout),
-			Currencies: toCurrencies(cfg.Exchange.Kraken),
+			Currencies: currencies,
 		})
 	}
-	if len(cfg.Exchange.Coinbase) > 0 {
+	if currencies := parseCurrencies(cfg.Exchange.Coinbase); len(currencies) > 0 {
 		feeds = append(feeds, oracle.FeedConfig{
 			Feed:       pricefeed.NewCoinbaseFeed(timeout),
-			Currencies: toCurrencies(cfg.Exchange.Coinbase),
+			Currencies: currencies,
 		})
 	}
-	if len(cfg.Exchange.Bitstamp) > 0 {
+	if currencies := parseCurrencies(cfg.Exchange.Bitstamp); len(currencies) > 0 {
 		feeds = append(feeds, oracle.FeedConfig{
 			Feed:       pricefeed.NewBitstampFeed(timeout),
-			Currencies: toCurrencies(cfg.Exchange.Bitstamp),
+			Currencies: currencies,
 		})
 	}
 

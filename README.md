@@ -68,16 +68,12 @@ loglevel=info
 ; datadir=~/.tassandra
 
 [Exchange]
-; For each exchange, list the currencies to poll from it.
-; Repeat the key for each currency. An exchange is active only when at least
-; one currency is configured for it.
-binance=USD
-binance=EUR
-kraken=USD
-kraken=EUR
-kraken=GBP
+; For each exchange, set a comma-separated list of fiat currencies to poll.
+; Omit or comment out a line to disable that exchange.
+binance=USD,EUR,GBP
+kraken=USD,EUR,GBP
 coinbase=USD
-bitstamp=EUR
+bitstamp=EUR,GBP
 
 [Asset]
 ; One line per Taproot Asset served over gRPC.

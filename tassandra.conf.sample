@@ -17,28 +17,16 @@ loglevel=info
 
 [Exchange]
 
-; For each exchange, list the fiat currencies to poll from it.
-; Repeat the key for each currency. An exchange is enabled only when at least
-; one currency is listed for it.
+; For each exchange, set a comma-separated list of fiat currencies to poll.
+; Leave a line commented out (or omit it) to disable that exchange.
 ;
-; Not all exchanges support all currency pairs — configure only the pairs that
+; Not all exchanges support all currency pairs — configure only the pairs
 ; the exchange actually provides.
 
-binance=USD
-binance=EUR
-binance=GBP
-
-kraken=USD
-kraken=EUR
-kraken=GBP
-
-coinbase=USD
-coinbase=EUR
-coinbase=GBP
-
-bitstamp=USD
-bitstamp=EUR
-bitstamp=GBP
+binance=USD,EUR,GBP
+kraken=USD,EUR,GBP
+coinbase=USD,EUR,GBP
+bitstamp=USD,EUR,GBP
 
 [Asset]
 
