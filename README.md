@@ -73,11 +73,11 @@ currency=EUR
 currency=GBP
 
 [Exchange]
-; All feeds are enabled by default. Uncomment to disable one.
-; disable-binance=true
-; disable-kraken=true
-; disable-coinbase=true
-; disable-bitstamp=true
+; Exchanges are disabled by default. Enable the ones you want to use.
+binance=true
+kraken=true
+coinbase=true
+bitstamp=true
 
 [Asset]
 ; One line per Taproot Asset served over gRPC.

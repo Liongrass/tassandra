@@ -22,11 +22,11 @@ currency=GBP
 
 [Exchange]
 
-; All feeds are enabled by default. Uncomment a line to disable a feed.
-; disable-binance=true
-; disable-kraken=true
-; disable-coinbase=true
-; disable-bitstamp=true
+; Exchanges are disabled by default. Enable the ones you want to use.
+binance=true
+kraken=true
+coinbase=true
+bitstamp=true
 
 [Asset]
 

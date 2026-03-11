@@ -175,16 +175,16 @@ func buildFeeds(cfg *config) []pricefeed.PriceFeed {
 
 	feeds := make([]pricefeed.PriceFeed, 0, 4)
 
-	if !cfg.Exchange.DisableBinance {
+	if cfg.Exchange.Binance {
 		feeds = append(feeds, pricefeed.NewBinanceFeed(timeout))
 	}
-	if !cfg.Exchange.DisableKraken {
+	if cfg.Exchange.Kraken {
 		feeds = append(feeds, pricefeed.NewKrakenFeed(timeout))
 	}
-	if !cfg.Exchange.DisableCoinbase {
+	if cfg.Exchange.Coinbase {
 		feeds = append(feeds, pricefeed.NewCoinbaseFeed(timeout))
 	}
-	if !cfg.Exchange.DisableBitstamp {
+	if cfg.Exchange.Bitstamp {
 		feeds = append(feeds, pricefeed.NewBitstampFeed(timeout))
 	}
 

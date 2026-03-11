@@ -39,13 +39,13 @@ type config struct {
 	Asset    assetSection   `group:"Asset"    namespace:"asset"`
 }
 
-// exchangeConfig controls which exchange adapters are disabled. All feeds are
-// enabled by default; set the corresponding disable-* flag to turn one off.
+// exchangeConfig controls which exchange adapters are active. All feeds are
+// disabled by default; set the corresponding flag to true to enable one.
 type exchangeConfig struct {
-	DisableBinance  bool `long:"disable-binance"  description:"Disable Binance price feed"`
-	DisableKraken   bool `long:"disable-kraken"   description:"Disable Kraken price feed"`
-	DisableCoinbase bool `long:"disable-coinbase" description:"Disable Coinbase price feed"`
-	DisableBitstamp bool `long:"disable-bitstamp" description:"Disable Bitstamp price feed"`
+	Binance  bool `long:"binance"  description:"Enable Binance price feed"`
+	Kraken   bool `long:"kraken"   description:"Enable Kraken price feed"`
+	Coinbase bool `long:"coinbase" description:"Enable Coinbase price feed"`
+	Bitstamp bool `long:"bitstamp" description:"Enable Bitstamp price feed"`
 }
 
 // assetSection holds zero or more asset configuration strings. Each entry
