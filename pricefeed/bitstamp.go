@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -12,13 +13,6 @@ const (
 	bitstampName    = "bitstamp"
 	bitstampBaseURL = "https://www.bitstamp.net/api/v2/ticker"
 )
-
-// bitstampPairs maps fiat currencies to Bitstamp currency pair path segments.
-var bitstampPairs = map[FiatCurrency]string{
-	USD: "btcusd",
-	EUR: "btceur",
-	GBP: "btcgbp",
-}
 
 // bitstampTickerResponse is the JSON response from the Bitstamp ticker
 // endpoint. Only the last trade price is used.
@@ -41,13 +35,11 @@ func NewBitstampFeed(timeout time.Duration) *BitstampFeed {
 // Name returns the exchange identifier.
 func (b *BitstampFeed) Name() string { return bitstampName }
 
-// SupportedCurrencies returns the fiat currencies Bitstamp can price.
-func (b *BitstampFeed) SupportedCurrencies() []FiatCurrency {
-	currencies := make([]FiatCurrency, 0, len(bitstampPairs))
-	for c := range bitstampPairs {
-		currencies = append(currencies, c)
-	}
-	return currencies
+// pairFor returns the Bitstamp currency pair path segment for the given fiat
+// currency. Bitstamp uses lowercase identifiers, e.g. USD → "btcusd",
+// EUR → "btceur".
+func (b *BitstampFeed) pairFor(currency FiatCurrency) string {
+	return "btc" + strings.ToLower(string(currency))
 }
 
 // FetchPrice fetches the current BTC spot price from Bitstamp for the given
@@ -55,10 +47,7 @@ func (b *BitstampFeed) SupportedCurrencies() []FiatCurrency {
 func (b *BitstampFeed) FetchPrice(ctx context.Context,
 	currency FiatCurrency) (Price, error) {
 
-	pair, ok := bitstampPairs[currency]
-	if !ok {
-		return Price{}, ErrCurrencyNotSupported
-	}
+	pair := b.pairFor(currency)
 
 	url := fmt.Sprintf("%s/%s/", bitstampBaseURL, pair)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -72,6 +61,9 @@ func (b *BitstampFeed) FetchPrice(ctx context.Context,
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return Price{}, ErrCurrencyNotSupported
+	}
 	if resp.StatusCode != http.StatusOK {
 		return Price{}, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
@@ -87,14 +79,12 @@ func (b *BitstampFeed) FetchPrice(ctx context.Context,
 		return Price{}, fmt.Errorf("parsing price %q: %w", priceStr, err)
 	}
 
-	now := time.Now()
-
 	log.Debugf("Bitstamp %s/%s: %s (raw)", currency, "BTC", priceStr)
 
 	return Price{
 		Value:     value,
 		Currency:  currency,
 		Exchange:  bitstampName,
-		Timestamp: now,
+		Timestamp: time.Now(),
 	}, nil
 }

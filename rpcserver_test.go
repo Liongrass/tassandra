@@ -27,13 +27,6 @@ type mockFeed struct {
 }
 
 func (m *mockFeed) Name() string { return m.name }
-func (m *mockFeed) SupportedCurrencies() []pricefeed.FiatCurrency {
-	currencies := make([]pricefeed.FiatCurrency, 0, len(m.values))
-	for c := range m.values {
-		currencies = append(currencies, c)
-	}
-	return currencies
-}
 func (m *mockFeed) FetchPrice(_ context.Context,
 	c pricefeed.FiatCurrency) (pricefeed.Price, error) {
 

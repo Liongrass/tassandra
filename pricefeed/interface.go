@@ -54,10 +54,6 @@ type PriceFeed interface {
 	// currency. Returns ErrCurrencyNotSupported if the exchange does not
 	// offer a BTC/fiat pair for that currency.
 	FetchPrice(ctx context.Context, currency FiatCurrency) (Price, error)
-
-	// SupportedCurrencies returns the set of fiat currencies this feed
-	// can price.
-	SupportedCurrencies() []FiatCurrency
 }
 
 // parsePriceString parses a decimal price string (e.g. "97432.15000000")

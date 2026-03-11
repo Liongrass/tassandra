@@ -13,14 +13,6 @@ const (
 	krakenBaseURL = "https://api.kraken.com/0/public/Ticker"
 )
 
-// krakenQueryPairs maps fiat currencies to the pair name used in Kraken API
-// queries.
-var krakenQueryPairs = map[FiatCurrency]string{
-	USD: "XBTUSD",
-	EUR: "XBTEUR",
-	GBP: "XBTGBP",
-}
-
 // krakenResponse is the top-level JSON response from the Kraken Ticker
 // endpoint. The result map key is the exchange-internal pair name (e.g.
 // "XXBTZUSD"), which may differ from the query pair name.
@@ -51,13 +43,11 @@ func NewKrakenFeed(timeout time.Duration) *KrakenFeed {
 // Name returns the exchange identifier.
 func (k *KrakenFeed) Name() string { return krakenName }
 
-// SupportedCurrencies returns the fiat currencies Kraken can price.
-func (k *KrakenFeed) SupportedCurrencies() []FiatCurrency {
-	currencies := make([]FiatCurrency, 0, len(krakenQueryPairs))
-	for c := range krakenQueryPairs {
-		currencies = append(currencies, c)
-	}
-	return currencies
+// pairFor returns the Kraken pair name for the given fiat currency.
+// Kraken uses XBT (not BTC) as the Bitcoin identifier, so the pair is
+// formed as "XBT" + currency (e.g. USD → XBTUSD, EUR → XBTEUR).
+func (k *KrakenFeed) pairFor(currency FiatCurrency) string {
+	return "XBT" + string(currency)
 }
 
 // FetchPrice fetches the current BTC spot price from Kraken for the given
@@ -65,10 +55,7 @@ func (k *KrakenFeed) SupportedCurrencies() []FiatCurrency {
 func (k *KrakenFeed) FetchPrice(ctx context.Context,
 	currency FiatCurrency) (Price, error) {
 
-	pair, ok := krakenQueryPairs[currency]
-	if !ok {
-		return Price{}, ErrCurrencyNotSupported
-	}
+	pair := k.pairFor(currency)
 
 	url := fmt.Sprintf("%s?pair=%s", krakenBaseURL, pair)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -98,7 +85,7 @@ func (k *KrakenFeed) FetchPrice(ctx context.Context,
 	// Kraken may return an internal pair name different from the query
 	// pair, so we take the first (and only) entry in the result map.
 	if len(krakenResp.Result) == 0 {
-		return Price{}, fmt.Errorf("empty result for pair %s", pair)
+		return Price{}, ErrCurrencyNotSupported
 	}
 
 	var entry krakenTickerEntry
@@ -119,14 +106,12 @@ func (k *KrakenFeed) FetchPrice(ctx context.Context,
 		return Price{}, fmt.Errorf("parsing price %q: %w", priceStr, err)
 	}
 
-	now := time.Now()
-
 	log.Debugf("Kraken %s/%s: %s (raw)", currency, "BTC", priceStr)
 
 	return Price{
 		Value:     value,
 		Currency:  currency,
 		Exchange:  krakenName,
-		Timestamp: now,
+		Timestamp: time.Now(),
 	}, nil
 }

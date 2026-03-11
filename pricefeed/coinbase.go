@@ -13,13 +13,6 @@ const (
 	coinbaseBaseURL = "https://api.coinbase.com/v2/prices"
 )
 
-// coinbasePairs maps fiat currencies to Coinbase product pair strings.
-var coinbasePairs = map[FiatCurrency]string{
-	USD: "BTC-USD",
-	EUR: "BTC-EUR",
-	GBP: "BTC-GBP",
-}
-
 // coinbaseSpotResponse is the JSON response from the Coinbase spot price
 // endpoint.
 type coinbaseSpotResponse struct {
@@ -45,13 +38,10 @@ func NewCoinbaseFeed(timeout time.Duration) *CoinbaseFeed {
 // Name returns the exchange identifier.
 func (c *CoinbaseFeed) Name() string { return coinbaseName }
 
-// SupportedCurrencies returns the fiat currencies Coinbase can price.
-func (c *CoinbaseFeed) SupportedCurrencies() []FiatCurrency {
-	currencies := make([]FiatCurrency, 0, len(coinbasePairs))
-	for cur := range coinbasePairs {
-		currencies = append(currencies, cur)
-	}
-	return currencies
+// pairFor returns the Coinbase product pair string for the given fiat
+// currency, e.g. USD → "BTC-USD", EUR → "BTC-EUR".
+func (c *CoinbaseFeed) pairFor(currency FiatCurrency) string {
+	return "BTC-" + string(currency)
 }
 
 // FetchPrice fetches the current BTC spot price from Coinbase for the given
@@ -59,10 +49,7 @@ func (c *CoinbaseFeed) SupportedCurrencies() []FiatCurrency {
 func (c *CoinbaseFeed) FetchPrice(ctx context.Context,
 	currency FiatCurrency) (Price, error) {
 
-	pair, ok := coinbasePairs[currency]
-	if !ok {
-		return Price{}, ErrCurrencyNotSupported
-	}
+	pair := c.pairFor(currency)
 
 	url := fmt.Sprintf("%s/%s/spot", coinbaseBaseURL, pair)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -76,6 +63,9 @@ func (c *CoinbaseFeed) FetchPrice(ctx context.Context,
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return Price{}, ErrCurrencyNotSupported
+	}
 	if resp.StatusCode != http.StatusOK {
 		return Price{}, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
@@ -91,14 +81,12 @@ func (c *CoinbaseFeed) FetchPrice(ctx context.Context,
 		return Price{}, fmt.Errorf("parsing price %q: %w", priceStr, err)
 	}
 
-	now := time.Now()
-
 	log.Debugf("Coinbase %s/%s: %s (raw)", currency, "BTC", priceStr)
 
 	return Price{
 		Value:     value,
 		Currency:  currency,
 		Exchange:  coinbaseName,
-		Timestamp: now,
+		Timestamp: time.Now(),
 	}, nil
 }
