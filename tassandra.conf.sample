@@ -15,18 +15,30 @@ loglevel=info
 ; Data directory for the SQLite database
 ; datadir=~/.tassandra
 
-; Fiat currencies to track (repeat for each currency)
-currency=USD
-currency=EUR
-currency=GBP
-
 [Exchange]
 
-; Exchanges are disabled by default. Enable the ones you want to use.
-binance=true
-kraken=true
-coinbase=true
-bitstamp=true
+; For each exchange, list the fiat currencies to poll from it.
+; Repeat the key for each currency. An exchange is enabled only when at least
+; one currency is listed for it.
+;
+; Not all exchanges support all currency pairs — configure only the pairs that
+; the exchange actually provides.
+
+binance=USD
+binance=EUR
+binance=GBP
+
+kraken=USD
+kraken=EUR
+kraken=GBP
+
+coinbase=USD
+coinbase=EUR
+coinbase=GBP
+
+bitstamp=USD
+bitstamp=EUR
+bitstamp=GBP
 
 [Asset]
 

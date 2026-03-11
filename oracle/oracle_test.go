@@ -63,15 +63,23 @@ func newTestStore(t *testing.T) pricestore.PriceStore {
 }
 
 // newTestOracle creates an oracle with a fast poll interval for testing.
+// Each feed is configured to poll USD only.
 func newTestOracle(t *testing.T, feeds []pricefeed.PriceFeed,
 	store pricestore.PriceStore) *oracle.Oracle {
 
 	t.Helper()
 
+	feedCfgs := make([]oracle.FeedConfig, len(feeds))
+	for i, f := range feeds {
+		feedCfgs[i] = oracle.FeedConfig{
+			Feed:       f,
+			Currencies: []pricefeed.FiatCurrency{pricefeed.USD},
+		}
+	}
+
 	o, err := oracle.New(oracle.Config{
-		Feeds:        feeds,
+		Feeds:        feedCfgs,
 		Store:        store,
-		Currencies:   []pricefeed.FiatCurrency{pricefeed.USD},
 		PollInterval: 10 * time.Millisecond,
 		FetchTimeout: time.Second,
 	})
@@ -207,9 +215,13 @@ func TestSubscription(t *testing.T) {
 	}
 
 	o, err := oracle.New(oracle.Config{
-		Feeds:        feeds,
+		Feeds: []oracle.FeedConfig{
+			{
+				Feed:       feeds[0],
+				Currencies: []pricefeed.FiatCurrency{pricefeed.USD},
+			},
+		},
 		Store:        store,
-		Currencies:   []pricefeed.FiatCurrency{pricefeed.USD},
 		PollInterval: 20 * time.Millisecond,
 		FetchTimeout: time.Second,
 	})

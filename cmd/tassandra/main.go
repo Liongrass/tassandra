@@ -82,24 +82,19 @@ func run() error {
 			"return UNSUPPORTED for all requests")
 	}
 
-	// Resolve fiat currencies to poll (explicit list + asset currencies).
-	currencies := cfg.fiatCurrencies(assetCfgs)
-	logger.Infof("Tracking currencies: %v", currencies)
-
-	// Build active price feeds.
-	feeds := buildFeeds(cfg)
-	if len(feeds) == 0 {
+	// Build active price feeds with their per-exchange currency lists.
+	feedCfgs := buildFeeds(cfg)
+	if len(feedCfgs) == 0 {
 		return fmt.Errorf("no exchange feeds enabled — " +
-			"enable at least one under [Exchange]")
+			"configure at least one exchange with a currency under [Exchange]")
 	}
 
-	logger.Infof("Active feeds: %d", len(feeds))
+	logger.Infof("Active feeds: %d", len(feedCfgs))
 
 	// Create and start the oracle.
 	o, err := oracle.New(oracle.Config{
-		Feeds:        feeds,
+		Feeds:        feedCfgs,
 		Store:        store,
-		Currencies:   currencies,
 		PollInterval: time.Minute,
 		FetchTimeout: 10 * time.Second,
 	})
@@ -169,23 +164,45 @@ func run() error {
 	return nil
 }
 
-// buildFeeds constructs the enabled price feed adapters.
-func buildFeeds(cfg *config) []pricefeed.PriceFeed {
+// buildFeeds constructs the enabled price feed adapters from per-exchange
+// currency lists. An exchange is included only when at least one currency is
+// configured for it.
+func buildFeeds(cfg *config) []oracle.FeedConfig {
 	const timeout = 10 * time.Second
 
-	feeds := make([]pricefeed.PriceFeed, 0, 4)
+	toCurrencies := func(ss []string) []pricefeed.FiatCurrency {
+		out := make([]pricefeed.FiatCurrency, len(ss))
+		for i, s := range ss {
+			out[i] = pricefeed.FiatCurrency(strings.ToUpper(s))
+		}
+		return out
+	}
 
-	if cfg.Exchange.Binance {
-		feeds = append(feeds, pricefeed.NewBinanceFeed(timeout))
+	feeds := make([]oracle.FeedConfig, 0, 4)
+
+	if len(cfg.Exchange.Binance) > 0 {
+		feeds = append(feeds, oracle.FeedConfig{
+			Feed:       pricefeed.NewBinanceFeed(timeout),
+			Currencies: toCurrencies(cfg.Exchange.Binance),
+		})
 	}
-	if cfg.Exchange.Kraken {
-		feeds = append(feeds, pricefeed.NewKrakenFeed(timeout))
+	if len(cfg.Exchange.Kraken) > 0 {
+		feeds = append(feeds, oracle.FeedConfig{
+			Feed:       pricefeed.NewKrakenFeed(timeout),
+			Currencies: toCurrencies(cfg.Exchange.Kraken),
+		})
 	}
-	if cfg.Exchange.Coinbase {
-		feeds = append(feeds, pricefeed.NewCoinbaseFeed(timeout))
+	if len(cfg.Exchange.Coinbase) > 0 {
+		feeds = append(feeds, oracle.FeedConfig{
+			Feed:       pricefeed.NewCoinbaseFeed(timeout),
+			Currencies: toCurrencies(cfg.Exchange.Coinbase),
+		})
 	}
-	if cfg.Exchange.Bitstamp {
-		feeds = append(feeds, pricefeed.NewBitstampFeed(timeout))
+	if len(cfg.Exchange.Bitstamp) > 0 {
+		feeds = append(feeds, oracle.FeedConfig{
+			Feed:       pricefeed.NewBitstampFeed(timeout),
+			Currencies: toCurrencies(cfg.Exchange.Bitstamp),
+		})
 	}
 
 	return feeds

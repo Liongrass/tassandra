@@ -32,11 +32,13 @@ func setupHTTPServer(t *testing.T,
 	t.Cleanup(func() { store.Close() })
 
 	o, err := oracle.New(oracle.Config{
-		Feeds: []pricefeed.PriceFeed{
-			&mockFeed{name: "testex", values: feedValues},
+		Feeds: []oracle.FeedConfig{
+			{
+				Feed:       &mockFeed{name: "testex", values: feedValues},
+				Currencies: currenciesFrom(feedValues),
+			},
 		},
 		Store:        store,
-		Currencies:   currenciesFrom(feedValues),
 		PollInterval: time.Minute,
 		FetchTimeout: time.Second,
 	})

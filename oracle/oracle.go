@@ -22,16 +22,20 @@ const (
 	subBufferSize = 10
 )
 
+// FeedConfig pairs a price feed with the specific fiat currencies it should
+// be polled for. Only the listed currencies will be requested from this feed.
+type FeedConfig struct {
+	Feed       pricefeed.PriceFeed
+	Currencies []pricefeed.FiatCurrency
+}
+
 // Config holds the configuration for the Oracle.
 type Config struct {
-	// Feeds is the list of price feeds to poll.
-	Feeds []pricefeed.PriceFeed
+	// Feeds is the list of price feeds and the currencies each should poll.
+	Feeds []FeedConfig
 
 	// Store is the price store used to persist price samples.
 	Store pricestore.PriceStore
-
-	// Currencies is the list of fiat currencies to track.
-	Currencies []pricefeed.FiatCurrency
 
 	// PollInterval is how often to poll exchanges. Defaults to
 	// DefaultPollInterval if zero.
@@ -73,8 +77,11 @@ func New(cfg Config) (*Oracle, error) {
 	if len(cfg.Feeds) == 0 {
 		return nil, errors.New("oracle requires at least one price feed")
 	}
-	if len(cfg.Currencies) == 0 {
-		return nil, errors.New("oracle requires at least one currency")
+	for _, fc := range cfg.Feeds {
+		if len(fc.Currencies) == 0 {
+			return nil, errors.New("each feed config requires at " +
+				"least one currency")
+		}
 	}
 	if cfg.Store == nil {
 		return nil, errors.New("oracle requires a price store")
@@ -98,8 +105,8 @@ func New(cfg Config) (*Oracle, error) {
 // Start performs an initial poll and then begins the background polling loop.
 // It is safe to call Start only once.
 func (o *Oracle) Start() error {
-	log.Infof("Oracle starting: %d feed(s), %d currency(s), interval=%s",
-		len(o.cfg.Feeds), len(o.cfg.Currencies), o.cfg.PollInterval)
+	log.Infof("Oracle starting: %d feed(s), interval=%s",
+		len(o.cfg.Feeds), o.cfg.PollInterval)
 
 	// Poll immediately so callers have prices before the first tick.
 	o.pollAll()
@@ -174,17 +181,29 @@ func (o *Oracle) pollLoop() {
 	}
 }
 
-// pollAll polls every configured currency.
+// pollAll polls every currency that has at least one feed configured for it.
 func (o *Oracle) pollAll() {
-	for _, currency := range o.cfg.Currencies {
-		o.pollCurrency(currency)
+	// Build a deduplicated map from currency → feeds that serve it.
+	currencyFeeds := make(
+		map[pricefeed.FiatCurrency][]pricefeed.PriceFeed,
+	)
+	for _, fc := range o.cfg.Feeds {
+		for _, c := range fc.Currencies {
+			currencyFeeds[c] = append(currencyFeeds[c], fc.Feed)
+		}
+	}
+
+	for currency, feeds := range currencyFeeds {
+		o.pollCurrency(currency, feeds)
 	}
 }
 
-// pollCurrency fetches prices from all feeds for the given currency
+// pollCurrency fetches prices from the given feeds for the given currency
 // concurrently, computes the median, and persists both raw and aggregated
 // samples.
-func (o *Oracle) pollCurrency(currency pricefeed.FiatCurrency) {
+func (o *Oracle) pollCurrency(currency pricefeed.FiatCurrency,
+	feeds []pricefeed.PriceFeed) {
+
 	ctx, cancel := context.WithTimeout(
 		context.Background(), o.cfg.FetchTimeout,
 	)
@@ -195,9 +214,9 @@ func (o *Oracle) pollCurrency(currency pricefeed.FiatCurrency) {
 		err   error
 	}
 
-	resultCh := make(chan result, len(o.cfg.Feeds))
+	resultCh := make(chan result, len(feeds))
 
-	for _, feed := range o.cfg.Feeds {
+	for _, feed := range feeds {
 		feed := feed
 		go func() {
 			p, err := feed.FetchPrice(ctx, currency)
@@ -205,8 +224,8 @@ func (o *Oracle) pollCurrency(currency pricefeed.FiatCurrency) {
 		}()
 	}
 
-	prices := make([]pricefeed.Price, 0, len(o.cfg.Feeds))
-	for range o.cfg.Feeds {
+	prices := make([]pricefeed.Price, 0, len(feeds))
+	for range feeds {
 		r := <-resultCh
 		if r.err != nil {
 			// ErrCurrencyNotSupported is expected for feeds that

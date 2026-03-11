@@ -67,17 +67,17 @@ httplisten=0.0.0.0:10591
 loglevel=info
 ; datadir=~/.tassandra
 
-; Fiat currencies to track (repeat for each)
-currency=USD
-currency=EUR
-currency=GBP
-
 [Exchange]
-; Exchanges are disabled by default. Enable the ones you want to use.
-binance=true
-kraken=true
-coinbase=true
-bitstamp=true
+; For each exchange, list the currencies to poll from it.
+; Repeat the key for each currency. An exchange is active only when at least
+; one currency is configured for it.
+binance=USD
+binance=EUR
+kraken=USD
+kraken=EUR
+kraken=GBP
+coinbase=USD
+bitstamp=EUR
 
 [Asset]
 ; One line per Taproot Asset served over gRPC.

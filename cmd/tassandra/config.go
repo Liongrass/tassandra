@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	flags "github.com/jessevdk/go-flags"
-	"github.com/liongrass/tassandra/pricefeed"
 
 	tassandra "github.com/liongrass/tassandra"
+	"github.com/liongrass/tassandra/pricefeed"
 )
 
 const (
@@ -28,24 +28,24 @@ const (
 // config holds all daemon configuration. Fields are populated from the ini
 // config file and command-line flags via go-flags.
 type config struct {
-	GRPCListen   string   `long:"grpclisten"   description:"gRPC server listen address"        default:"0.0.0.0:10590"`
-	HTTPListen   string   `long:"httplisten"   description:"HTTP server listen address"        default:"0.0.0.0:10591"`
-	LogLevel     string   `long:"loglevel"     description:"Logging level (trace|debug|info|warn|error|critical)" default:"info"`
-	DataDir      string   `long:"datadir"      description:"Directory for database and config files"`
-	ConfigFile   string   `long:"configfile"   short:"C"  description:"Path to config file"`
-	Currencies   []string `long:"currency"     description:"Fiat currency to track (repeat for multiple, e.g. USD)"`
+	GRPCListen string `long:"grpclisten" description:"gRPC server listen address" default:"0.0.0.0:10590"`
+	HTTPListen string `long:"httplisten" description:"HTTP server listen address" default:"0.0.0.0:10591"`
+	LogLevel   string `long:"loglevel"   description:"Logging level (trace|debug|info|warn|error|critical)" default:"info"`
+	DataDir    string `long:"datadir"    description:"Directory for database and config files"`
+	ConfigFile string `long:"configfile" short:"C" description:"Path to config file"`
 
 	Exchange exchangeConfig `group:"Exchange" namespace:"exchange"`
 	Asset    assetSection   `group:"Asset"    namespace:"asset"`
 }
 
-// exchangeConfig controls which exchange adapters are active. All feeds are
-// disabled by default; set the corresponding flag to true to enable one.
+// exchangeConfig lists the fiat currencies to poll for each exchange adapter.
+// An exchange is enabled only when at least one currency is listed for it.
+// Repeat the flag for each currency, e.g.: binance=USD binance=EUR
 type exchangeConfig struct {
-	Binance  bool `long:"binance"  description:"Enable Binance price feed"`
-	Kraken   bool `long:"kraken"   description:"Enable Kraken price feed"`
-	Coinbase bool `long:"coinbase" description:"Enable Coinbase price feed"`
-	Bitstamp bool `long:"bitstamp" description:"Enable Bitstamp price feed"`
+	Binance  []string `long:"binance"  description:"Enable Binance for this currency (repeat for multiple)"`
+	Kraken   []string `long:"kraken"   description:"Enable Kraken for this currency (repeat for multiple)"`
+	Coinbase []string `long:"coinbase" description:"Enable Coinbase for this currency (repeat for multiple)"`
+	Bitstamp []string `long:"bitstamp" description:"Enable Bitstamp for this currency (repeat for multiple)"`
 }
 
 // assetSection holds zero or more asset configuration strings. Each entry
@@ -112,11 +112,6 @@ func loadConfig() (*config, error) {
 
 	cfg.DataDir = cleanPath(cfg.DataDir)
 
-	// Default currency list when none is specified.
-	if len(cfg.Currencies) == 0 {
-		cfg.Currencies = []string{"USD", "EUR", "GBP"}
-	}
-
 	return cfg, nil
 }
 
@@ -131,34 +126,6 @@ func (cfg *config) assetConfigs() ([]tassandra.AssetConfig, error) {
 		result = append(result, ac)
 	}
 	return result, nil
-}
-
-// currencies returns the configured fiat currencies as pricefeed.FiatCurrency.
-// Currencies that appear in the asset config but are absent from the explicit
-// list are added automatically so the oracle always polls what it needs.
-func (cfg *config) fiatCurrencies(
-	assets []tassandra.AssetConfig) []pricefeed.FiatCurrency {
-
-	seen := make(map[pricefeed.FiatCurrency]struct{})
-
-	currencies := make([]pricefeed.FiatCurrency, 0,
-		len(cfg.Currencies)+len(assets))
-
-	add := func(c pricefeed.FiatCurrency) {
-		if _, ok := seen[c]; !ok {
-			seen[c] = struct{}{}
-			currencies = append(currencies, c)
-		}
-	}
-
-	for _, s := range cfg.Currencies {
-		add(pricefeed.FiatCurrency(strings.ToUpper(s)))
-	}
-	for _, a := range assets {
-		add(a.Currency)
-	}
-
-	return currencies
 }
 
 // parseAssetString parses a string of the form
