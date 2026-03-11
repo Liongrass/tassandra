@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
-	"strings"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -34,8 +35,25 @@ func run() error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// Set up structured logging via btclog.
-	logger := buildLogger(cfg.LogLevel)
+	// Ensure the data directory exists before opening the log file.
+	if err := os.MkdirAll(cfg.DataDir, 0700); err != nil {
+		return fmt.Errorf("creating data directory %s: %w",
+			cfg.DataDir, err)
+	}
+
+	// Open the log file in append mode, creating it if necessary.
+	logPath := filepath.Join(cfg.DataDir, "tassandra.log")
+	logFile, err := os.OpenFile(
+		logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644,
+	)
+	if err != nil {
+		return fmt.Errorf("opening log file %s: %w", logPath, err)
+	}
+	defer logFile.Close()
+
+	// Set up structured logging via btclog, writing to stdout and the
+	// log file simultaneously.
+	logger := buildLogger(cfg.LogLevel, io.MultiWriter(os.Stdout, logFile))
 	tassandra.UseLogger(logger)
 	oracle.UseLogger(logger)
 	pricefeed.UseLogger(logger)
@@ -43,12 +61,7 @@ func run() error {
 
 	logger.Infof("Tassandra starting")
 	logger.Infof("Data directory: %s", cfg.DataDir)
-
-	// Ensure the data directory exists.
-	if err := os.MkdirAll(cfg.DataDir, 0700); err != nil {
-		return fmt.Errorf("creating data directory %s: %w",
-			cfg.DataDir, err)
-	}
+	logger.Infof("Log file: %s", logPath)
 
 	// Open the price store.
 	dbPath := filepath.Join(cfg.DataDir, defaultDBFileName)
@@ -178,9 +191,9 @@ func buildFeeds(cfg *config) []pricefeed.PriceFeed {
 	return feeds
 }
 
-// buildLogger constructs a btclog logger at the given level writing to stdout.
-func buildLogger(levelStr string) btclog.Logger {
-	handler := btclog.NewDefaultHandler(os.Stdout)
+// buildLogger constructs a btclog logger at the given level writing to w.
+func buildLogger(levelStr string, w io.Writer) btclog.Logger {
+	handler := btclog.NewDefaultHandler(w)
 
 	if level, ok := btclog.LevelFromString(strings.ToUpper(levelStr)); ok {
 		handler.SetLevel(level)
