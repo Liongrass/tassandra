@@ -32,21 +32,16 @@ prices available over two interfaces:
 
 ## Building
 
-```bash
-make build
-```
-
-This produces two binaries in `bin/`:
-
-| Binary | Description |
-|---|---|
-| `bin/tassandra` | The daemon |
-| `bin/tassandra-cli` | The CLI client |
-
-To install both into `~/go/bin`:
+To install both binaries into `$GOPATH/bin` (typically `~/go/bin`):
 
 ```bash
 make install
+```
+
+To build local test binaries into `bin/` without installing:
+
+```bash
+make build
 ```
 
 ## Configuration
@@ -214,9 +209,8 @@ make clean         # remove bin/
 ### Project layout
 
 ```
-cmd/
-  tassandra/        daemon entry point and config
-  tassandra-cli/    CLI client
+daemon/             daemon entry point and config
+cli/                CLI client
 oracle/             poll loop, median aggregation, subscriptions
 pricefeed/          exchange adapters (Binance, Kraken, Coinbase, Bitstamp)
 pricestore/         SQLite store and sqlc-generated query code

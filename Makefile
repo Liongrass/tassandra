@@ -8,18 +8,18 @@ PROTOC_GEN_GO  ?= protoc-gen-go
 PROTOC_GEN_GRPC ?= protoc-gen-go-grpc
 SQLC           ?= sqlc
 
-BIN_DIR  = bin
-DAEMON   = $(BIN_DIR)/tassandra
-CLI      = $(BIN_DIR)/tassandra-cli
+BIN_DIR    = bin
+DAEMON     = $(BIN_DIR)/tassandra
+CLI        = $(BIN_DIR)/tassandra-cli
 
-DAEMON_PKG = ./cmd/tassandra
-CLI_PKG    = ./cmd/tassandra-cli
+DAEMON_PKG = ./daemon
+CLI_PKG    = ./cli
 
 .PHONY: all build daemon cli install test vet proto sqlc clean
 
 all: build
 
-# ── Build ─────────────────────────────────────────────────────────────────────
+# ── Build (local, output to bin/) ─────────────────────────────────────────────
 
 build: daemon cli
 
@@ -33,7 +33,8 @@ cli:
 	$(GOBUILD) -o $(CLI) $(CLI_PKG)
 	@echo "Built $(CLI)"
 
-# Install both binaries into $GOPATH/bin (or ~/go/bin by default).
+# ── Install (to $GOPATH/bin) ──────────────────────────────────────────────────
+
 install:
 	$(GOINSTALL) $(DAEMON_PKG)
 	$(GOINSTALL) $(CLI_PKG)
