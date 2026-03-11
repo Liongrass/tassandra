@@ -34,8 +34,8 @@ type config struct {
 	DataDir    string `long:"datadir"    description:"Directory for database and config files"`
 	ConfigFile string `long:"configfile" short:"C" description:"Path to config file"`
 
-	Exchange exchangeConfig `group:"Exchange" namespace:"exchange"`
-	Asset    assetSection   `group:"Asset"    namespace:"asset"`
+	Exchange exchangeConfig `group:"Exchange"`
+	Asset    assetSection   `group:"Asset" namespace:"asset"`
 }
 
 // exchangeConfig controls which exchanges are active and which currencies each
