@@ -28,11 +28,12 @@ const (
 // config holds all daemon configuration. Fields are populated from the ini
 // config file and command-line flags via go-flags.
 type config struct {
-	GRPCListen string `long:"grpclisten" description:"gRPC server listen address" default:"0.0.0.0:10590"`
-	HTTPListen string `long:"httplisten" description:"HTTP server listen address" default:"0.0.0.0:10591"`
-	LogLevel   string `long:"loglevel"   description:"Logging level (trace|debug|info|warn|error|critical)" default:"info"`
-	DataDir    string `long:"datadir"    description:"Directory for database and config files"`
-	ConfigFile string `long:"configfile" short:"C" description:"Path to config file"`
+	GRPCListen   string `long:"grpclisten"   description:"gRPC server listen address" default:"0.0.0.0:10590"`
+	HTTPListen   string `long:"httplisten"   description:"HTTP server listen address" default:"0.0.0.0:10591"`
+	LogLevel     string `long:"loglevel"     description:"Logging level (trace|debug|info|warn|error|critical)" default:"info"`
+	DataDir      string `long:"datadir"      description:"Directory for database and config files"`
+	ConfigFile   string `long:"configfile"   short:"C" description:"Path to config file"`
+	PollInterval string `long:"pollinterval" description:"How often to poll exchanges (e.g. 60s, 5m)" default:"60s"`
 
 	Exchange exchangeConfig `group:"Exchange"`
 	Asset    assetSection   `group:"Asset" namespace:"asset"`

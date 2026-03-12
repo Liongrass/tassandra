@@ -12,6 +12,9 @@ httplisten=0.0.0.0:10591
 ; Log level: trace | debug | info | warn | error | critical
 loglevel=info
 
+; How often to poll exchanges. Accepts Go duration strings: 60s, 5m, 1h, etc.
+pollinterval=60s
+
 ; Data directory for the SQLite database
 ; datadir=~/.tassandra
 

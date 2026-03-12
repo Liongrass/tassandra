@@ -91,11 +91,16 @@ func run() error {
 
 	logger.Infof("Active feeds: %d", len(feedCfgs))
 
+	pollInterval, err := time.ParseDuration(cfg.PollInterval)
+	if err != nil {
+		return fmt.Errorf("invalid pollinterval %q: %w", cfg.PollInterval, err)
+	}
+
 	// Create and start the oracle.
 	o, err := oracle.New(oracle.Config{
 		Feeds:        feedCfgs,
 		Store:        store,
-		PollInterval: time.Minute,
+		PollInterval: pollInterval,
 		FetchTimeout: 10 * time.Second,
 	})
 	if err != nil {
