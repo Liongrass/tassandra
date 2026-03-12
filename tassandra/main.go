@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -138,6 +139,13 @@ func run() error {
 		return fmt.Errorf("starting HTTP server: %w", err)
 	}
 
+	// Write PID file so tassandra-cli stop can find us.
+	pidPath := filepath.Join(cfg.DataDir, "tassandra.pid")
+	if err := writePIDFile(pidPath); err != nil {
+		return fmt.Errorf("writing PID file: %w", err)
+	}
+	defer os.Remove(pidPath)
+
 	logger.Infof("Tassandra ready")
 
 	// Wait for an interrupt/termination signal or a server error.
@@ -167,6 +175,12 @@ func run() error {
 	logger.Infof("Tassandra stopped")
 
 	return nil
+}
+
+// writePIDFile writes the current process ID to path.
+func writePIDFile(path string) error {
+	pid := strconv.Itoa(os.Getpid())
+	return os.WriteFile(path, []byte(pid), 0600)
 }
 
 // buildFeeds constructs the enabled price feed adapters from per-exchange

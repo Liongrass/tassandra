@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -22,6 +24,7 @@ import (
 var (
 	rpcServer  string
 	httpServer string
+	dataDir    string
 )
 
 func main() {
@@ -32,6 +35,8 @@ func main() {
 		SilenceUsage: true,
 	}
 
+	home, _ := os.UserHomeDir()
+
 	root.PersistentFlags().StringVar(&rpcServer, "rpcserver",
 		"localhost:10590",
 		"Tassandra gRPC server address")
@@ -40,9 +45,14 @@ func main() {
 		"localhost:10591",
 		"Tassandra HTTP server address")
 
+	root.PersistentFlags().StringVar(&dataDir, "datadir",
+		filepath.Join(home, ".tassandra"),
+		"Tassandra data directory (used to locate the PID file)")
+
 	root.AddCommand(
 		newGetPriceCmd(),
 		newGetRateCmd(),
+		newStopCmd(),
 	)
 
 	if err := root.Execute(); err != nil {
@@ -233,6 +243,48 @@ exchange rate as configured in tassandra.conf.`,
 	_ = cmd.MarkFlagRequired("asset")
 
 	return cmd
+}
+
+// ── stop ──────────────────────────────────────────────────────────────────────
+
+func newStopCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "stop",
+		Short: "Gracefully stop the running Tassandra daemon",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pidPath := filepath.Join(dataDir, "tassandra.pid")
+
+			data, err := os.ReadFile(pidPath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return fmt.Errorf(
+						"PID file not found at %s — is tassandra running?",
+						pidPath,
+					)
+				}
+				return fmt.Errorf("reading PID file: %w", err)
+			}
+
+			pid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return fmt.Errorf("invalid PID file contents: %w", err)
+			}
+
+			proc, err := os.FindProcess(pid)
+			if err != nil {
+				return fmt.Errorf("finding process %d: %w", pid, err)
+			}
+
+			if err := proc.Signal(syscall.SIGTERM); err != nil {
+				return fmt.Errorf("sending SIGTERM to process %d: %w",
+					pid, err)
+			}
+
+			fmt.Printf("Sent SIGTERM to tassandra (pid %d)\n", pid)
+
+			return nil
+		},
+	}
 }
 
 // printRates formats and prints a QueryAssetRatesOkResponse.
