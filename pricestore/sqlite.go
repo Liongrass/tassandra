@@ -161,6 +161,36 @@ func (s *SQLiteStore) AggregatedPriceAt(ctx context.Context,
 	return aggregatedRowToStoredPrice(row, currency), nil
 }
 
+// LatestExchangePrice returns the most recently stored price for a specific
+// exchange and currency.
+func (s *SQLiteStore) LatestExchangePrice(ctx context.Context,
+	currency pricefeed.FiatCurrency, exchange string) (StoredPrice, error) {
+
+	row, err := s.queries.LatestExchangePrice(
+		ctx, sqlc.LatestExchangePriceParams{
+			Currency: string(currency),
+			Exchange: exchange,
+		},
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return StoredPrice{}, ErrNotFound
+	}
+	if err != nil {
+		return StoredPrice{}, fmt.Errorf(
+			"querying latest exchange price for %s/%s: %w",
+			exchange, currency, err,
+		)
+	}
+
+	return StoredPrice{
+		Value:     uint64(row.Value),
+		Currency:  pricefeed.FiatCurrency(row.Currency),
+		Exchange:  row.Exchange,
+		MinuteTS:  row.MinuteTs,
+		Timestamp: time.Unix(row.MinuteTs, 0).UTC(),
+	}, nil
+}
+
 // ExchangePriceAt returns the price from a specific exchange for a currency
 // at the given exact minute-aligned Unix timestamp.
 func (s *SQLiteStore) ExchangePriceAt(ctx context.Context,

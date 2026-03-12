@@ -119,6 +119,32 @@ func (q *Queries) LatestAggregatedPrice(ctx context.Context, currency string) (A
 	return i, err
 }
 
+const latestExchangePrice = `-- name: LatestExchangePrice :one
+SELECT id, exchange, currency, value, minute_ts
+FROM exchange_prices
+WHERE currency = ? AND exchange = ?
+ORDER BY minute_ts DESC
+LIMIT 1
+`
+
+type LatestExchangePriceParams struct {
+	Currency string
+	Exchange string
+}
+
+func (q *Queries) LatestExchangePrice(ctx context.Context, arg LatestExchangePriceParams) (ExchangePrice, error) {
+	row := q.db.QueryRowContext(ctx, latestExchangePrice, arg.Currency, arg.Exchange)
+	var i ExchangePrice
+	err := row.Scan(
+		&i.ID,
+		&i.Exchange,
+		&i.Currency,
+		&i.Value,
+		&i.MinuteTs,
+	)
+	return i, err
+}
+
 const listAggregatedPrices = `-- name: ListAggregatedPrices :many
 SELECT id, currency, value, minute_ts
 FROM aggregated_prices

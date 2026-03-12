@@ -192,14 +192,48 @@ func TestHTTPNotFound(t *testing.T) {
 	}
 }
 
-func TestHTTPExchangeWithoutDate(t *testing.T) {
+func TestHTTPLatestExchangePrice(t *testing.T) {
+	srv, store := setupHTTPServer(t,
+		map[pricefeed.FiatCurrency]uint64{pricefeed.USD: 9_500_000_000_000},
+	)
+
+	const exchangeValue = 9_450_000_000_000
+	if err := store.InsertExchangePrice(t.Context(), pricefeed.Price{
+		Value:     exchangeValue,
+		Currency:  pricefeed.USD,
+		Exchange:  "kraken",
+		Timestamp: time.Now(),
+	}); err != nil {
+		t.Fatalf("InsertExchangePrice: %v", err)
+	}
+
+	w := get(t, srv, "/price/USD?exchange=kraken")
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200 (body: %s)", w.Code, w.Body)
+	}
+
+	var resp tassandra.PriceResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	if resp.Exchange != "kraken" {
+		t.Errorf("Exchange: got %q, want kraken", resp.Exchange)
+	}
+	if resp.Price != "94500.00000000" {
+		t.Errorf("Price: got %q, want 94500.00000000", resp.Price)
+	}
+}
+
+func TestHTTPExchangeWithoutDateNotFound(t *testing.T) {
 	srv, _ := setupHTTPServer(t,
 		map[pricefeed.FiatCurrency]uint64{pricefeed.USD: 9_500_000_000_000},
 	)
 
+	// No data seeded for this exchange — expect 404.
 	w := get(t, srv, "/price/USD?exchange=kraken")
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status: got %d, want 400", w.Code)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status: got %d, want 404", w.Code)
 	}
 }
 

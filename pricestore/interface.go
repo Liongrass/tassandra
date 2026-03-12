@@ -56,6 +56,12 @@ type PriceStore interface {
 		currency pricefeed.FiatCurrency,
 		minuteTS int64) (StoredPrice, error)
 
+	// LatestExchangePrice returns the most recently stored price for a
+	// specific exchange and currency. Returns ErrNotFound if none exists.
+	LatestExchangePrice(ctx context.Context,
+		currency pricefeed.FiatCurrency,
+		exchange string) (StoredPrice, error)
+
 	// ExchangePriceAt returns the price from a specific exchange for a
 	// currency at the given exact minute-aligned Unix timestamp. Returns
 	// ErrNotFound if no record exists at that exact minute.

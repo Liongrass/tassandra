@@ -104,15 +104,13 @@ func (s *HTTPServer) handlePrice(w http.ResponseWriter, r *http.Request) {
 	dateStr := r.URL.Query().Get("date")
 	exchangeName := r.URL.Query().Get("exchange")
 
-	// exchange without date is not meaningful.
-	if exchangeName != "" && dateStr == "" {
-		writeJSONError(w, http.StatusBadRequest,
-			"exchange parameter requires date")
+	if dateStr != "" {
+		s.handleHistoricalPrice(w, r, currency, exchangeName, dateStr)
 		return
 	}
 
-	if dateStr != "" {
-		s.handleHistoricalPrice(w, r, currency, exchangeName, dateStr)
+	if exchangeName != "" {
+		s.handleLatestExchangePrice(w, r, currency, exchangeName)
 		return
 	}
 
@@ -134,6 +132,35 @@ func (s *HTTPServer) handleCurrentPrice(w http.ResponseWriter,
 		Currency:  string(currency),
 		Price:     FormatPrice(stored.Value),
 		Timestamp: stored.MinuteTS,
+	})
+}
+
+// handleLatestExchangePrice serves the most recently stored price for a
+// specific exchange and currency.
+func (s *HTTPServer) handleLatestExchangePrice(w http.ResponseWriter,
+	r *http.Request, currency pricefeed.FiatCurrency, exchangeName string) {
+
+	stored, err := s.store.LatestExchangePrice(
+		r.Context(), currency, exchangeName,
+	)
+	if errors.Is(err, pricestore.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound,
+			fmt.Sprintf("no %s/%s price available yet",
+				exchangeName, currency))
+		return
+	}
+	if err != nil {
+		log.Errorf("LatestExchangePrice %s/%s: %v",
+			exchangeName, currency, err)
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	writeJSON(w, PriceResponse{
+		Currency:  string(currency),
+		Price:     FormatPrice(stored.Value),
+		Timestamp: stored.MinuteTS,
+		Exchange:  stored.Exchange,
 	})
 }
 

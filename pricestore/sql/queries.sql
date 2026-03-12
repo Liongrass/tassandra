@@ -22,6 +22,13 @@ WHERE currency = ? AND minute_ts <= ?
 ORDER BY minute_ts DESC
 LIMIT 1;
 
+-- name: LatestExchangePrice :one
+SELECT id, exchange, currency, value, minute_ts
+FROM exchange_prices
+WHERE currency = ? AND exchange = ?
+ORDER BY minute_ts DESC
+LIMIT 1;
+
 -- name: ExchangePriceAt :one
 SELECT id, exchange, currency, value, minute_ts
 FROM exchange_prices
