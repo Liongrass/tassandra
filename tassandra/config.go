@@ -36,7 +36,7 @@ type config struct {
 	PollInterval string `long:"pollinterval" description:"How often to poll exchanges (e.g. 60s, 5m)" default:"60s"`
 
 	Exchange exchangeConfig `group:"Exchange"`
-	Asset    assetSection   `group:"Asset" namespace:"asset"`
+	Asset    assetSection   `group:"Asset"`
 }
 
 // exchangeConfig controls which exchanges are active and which currencies each
