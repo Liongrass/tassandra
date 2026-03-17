@@ -50,10 +50,10 @@ type exchangeConfig struct {
 }
 
 // assetSection holds zero or more asset configuration strings. Each entry
-// has the format:  <hex-asset-id>:<currency>:<markup-ppm>
-// For example:     0a1b2c...:USD:5000
+// has the format:  <hex-asset-id>:<currency>:<markup-ppm>[:<decimal-display>]
+// For example:     0a1b2c...:USD:5000:3
 type assetSection struct {
-	Assets []string `long:"asset" description:"Asset config as hex-id:currency:markup-ppm (repeat for each asset)"`
+	Assets []string `long:"asset" description:"Asset config as hex-id:currency:markup-ppm[:decimal-display] (repeat for each asset)"`
 }
 
 // loadConfig parses the config file and command-line flags, applies defaults
@@ -130,12 +130,13 @@ func (cfg *config) assetConfigs() ([]tassandra.AssetConfig, error) {
 }
 
 // parseAssetString parses a string of the form
-// "<hex-asset-id>:<currency>:<markup-ppm>" into an AssetConfig.
+// "<hex-asset-id>:<currency>:<markup-ppm>[:<decimal-display>]" into an
+// AssetConfig. The decimal-display field is optional and defaults to 0.
 func parseAssetString(s string) (tassandra.AssetConfig, error) {
-	parts := strings.SplitN(s, ":", 3)
-	if len(parts) != 3 {
+	parts := strings.SplitN(s, ":", 4)
+	if len(parts) < 3 {
 		return tassandra.AssetConfig{},
-			fmt.Errorf("expected <hex-id>:<currency>:<markup-ppm>, got %q", s)
+			fmt.Errorf("expected <hex-id>:<currency>:<markup-ppm>[:<decimal-display>], got %q", s)
 	}
 
 	assetID := strings.ToLower(strings.TrimSpace(parts[0]))
@@ -156,10 +157,21 @@ func parseAssetString(s string) (tassandra.AssetConfig, error) {
 			fmt.Errorf("markup ppm must be an integer: %w", err)
 	}
 
+	var decimalDisplay uint8
+	if len(parts) == 4 {
+		dd, err := strconv.ParseUint(strings.TrimSpace(parts[3]), 10, 8)
+		if err != nil {
+			return tassandra.AssetConfig{},
+				fmt.Errorf("decimal display must be an integer (0-255): %w", err)
+		}
+		decimalDisplay = uint8(dd)
+	}
+
 	return tassandra.AssetConfig{
-		AssetID:   assetID,
-		Currency:  currency,
-		MarkupPPM: ppm,
+		AssetID:        assetID,
+		Currency:       currency,
+		MarkupPPM:      ppm,
+		DecimalDisplay: decimalDisplay,
 	}, nil
 }
 

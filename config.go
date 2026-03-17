@@ -17,4 +17,13 @@ type AssetConfig struct {
 	// serving this asset over gRPC, expressed in parts per million.
 	// For example, 5000 represents a 0.5% markup.
 	MarkupPPM uint64
+
+	// DecimalDisplay is the number of decimal places the asset uses for
+	// display purposes (equivalent to the asset's decimal_display field in
+	// the Taproot Assets protocol). For example, an asset with
+	// DecimalDisplay=3 treats 1000 base units as 1.000 display unit.
+	// The returned rate coefficient is multiplied by 10^DecimalDisplay so
+	// that tapd correctly prices base-unit amounts against a fiat rate that
+	// is expressed in display units per BTC.
+	DecimalDisplay uint8
 }

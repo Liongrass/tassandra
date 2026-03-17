@@ -93,8 +93,11 @@ func (s *RpcServer) QueryAssetRates(ctx context.Context,
 		), nil
 	}
 
-	// Apply markup and build the subject asset rate.
-	subjectCoeff := applyMarkup(stored.Value, assetCfg.MarkupPPM)
+	// Apply markup and decimal display scaling, then build the subject
+	// asset rate.
+	subjectCoeff := applyMarkup(
+		stored.Value, assetCfg.MarkupPPM, assetCfg.DecimalDisplay,
+	)
 	subjectRate := &priceoraclerpc.FixedPoint{
 		Coefficient: subjectCoeff,
 		Scale:       priceScale,
@@ -112,9 +115,9 @@ func (s *RpcServer) QueryAssetRates(ctx context.Context,
 	expiry := uint64(time.Now().Add(rateExpirySeconds * time.Second).Unix())
 
 	log.Debugf("QueryAssetRates: asset=%s currency=%s raw=%d "+
-		"markup=%dppm coeff=%s expiry=%d",
+		"markup=%dppm decimal_display=%d coeff=%s expiry=%d",
 		subjectHex, assetCfg.Currency, stored.Value,
-		assetCfg.MarkupPPM, subjectCoeff, expiry)
+		assetCfg.MarkupPPM, assetCfg.DecimalDisplay, subjectCoeff, expiry)
 
 	return &priceoraclerpc.QueryAssetRatesResponse{
 		Result: &priceoraclerpc.QueryAssetRatesResponse_Ok{
@@ -162,7 +165,7 @@ func (s *RpcServer) paymentAssetRate(
 		)
 	}
 
-	coeff := applyMarkup(stored.Value, assetCfg.MarkupPPM)
+	coeff := applyMarkup(stored.Value, assetCfg.MarkupPPM, assetCfg.DecimalDisplay)
 
 	return &priceoraclerpc.FixedPoint{
 		Coefficient: coeff,
@@ -170,24 +173,38 @@ func (s *RpcServer) paymentAssetRate(
 	}, nil
 }
 
-// applyMarkup applies a PPM markup to a price value and returns the result
-// as a decimal string. Uses big.Int to avoid uint64 overflow at high prices.
+// applyMarkup applies a PPM markup and a decimal display scaling to a price
+// value and returns the result as a decimal string. Uses big.Int to avoid
+// uint64 overflow at high prices.
 //
-// marked = value * (1_000_000 + markupPPM) / 1_000_000
-func applyMarkup(value, markupPPM uint64) string {
+// The markup step:
+//
+//	marked = value * (1_000_000 + markupPPM) / 1_000_000
+//
+// The decimal display step multiplies by 10^decimalDisplay so that the
+// returned coefficient correctly represents base-unit quantities. For example,
+// an asset with decimalDisplay=3 has 1000 base units per display unit, so the
+// rate coefficient must be scaled up by 10^3 to map a fiat price expressed in
+// display units per BTC to base units per BTC.
+func applyMarkup(value, markupPPM uint64, decimalDisplay uint8) string {
 	v := new(big.Int).SetUint64(value)
 
-	if markupPPM == 0 {
-		return v.String()
+	if markupPPM != 0 {
+		factor := new(big.Int).SetUint64(1_000_000 + markupPPM)
+		divisor := new(big.Int).SetUint64(1_000_000)
+
+		v.Mul(v, factor)
+		v.Div(v, divisor)
 	}
 
-	factor := new(big.Int).SetUint64(1_000_000 + markupPPM)
-	divisor := new(big.Int).SetUint64(1_000_000)
+	if decimalDisplay > 0 {
+		scale := new(big.Int).Exp(
+			big.NewInt(10), big.NewInt(int64(decimalDisplay)), nil,
+		)
+		v.Mul(v, scale)
+	}
 
-	result := new(big.Int).Mul(v, factor)
-	result.Div(result, divisor)
-
-	return result.String()
+	return v.String()
 }
 
 // assetSpecifierToHex normalises any variant of an AssetSpecifier to a
