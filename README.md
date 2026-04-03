@@ -56,8 +56,8 @@ The config file uses an ini-style format:
 
 ```ini
 [Application Options]
-grpclisten=0.0.0.0:10590
-httplisten=0.0.0.0:10591
+grpclisten=127.0.0.1:10590
+httplisten=127.0.0.1:10591
 loglevel=info
 ; datadir=~/.tassandra
 

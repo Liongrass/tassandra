@@ -4,10 +4,10 @@
 [Application Options]
 
 ; gRPC listen address (implements the tapd PriceOracle service)
-grpclisten=0.0.0.0:10590
+grpclisten=127.0.0.1:10590
 
 ; HTTP listen address (raw prices for point-of-sale devices, behind Aperture)
-httplisten=0.0.0.0:10591
+httplisten=127.0.0.1:10591
 
 ; Log level: trace | debug | info | warn | error | critical
 loglevel=info

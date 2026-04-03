@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	defaultGRPCListen    = "0.0.0.0:10590"
-	defaultHTTPListen    = "0.0.0.0:10591"
+	defaultGRPCListen    = "127.0.0.1:10590"
+	defaultHTTPListen    = "127.0.0.1:10591"
 	defaultLogLevel      = "info"
 	defaultDBFileName    = "tassandra.db"
 	defaultConfigFile    = "tassandra.conf"
@@ -28,8 +28,8 @@ const (
 // config holds all daemon configuration. Fields are populated from the ini
 // config file and command-line flags via go-flags.
 type config struct {
-	GRPCListen   string `long:"grpclisten"   description:"gRPC server listen address" default:"0.0.0.0:10590"`
-	HTTPListen   string `long:"httplisten"   description:"HTTP server listen address" default:"0.0.0.0:10591"`
+	GRPCListen   string `long:"grpclisten"   description:"gRPC server listen address" default:"127.0.0.1:10590"`
+	HTTPListen   string `long:"httplisten"   description:"HTTP server listen address" default:"127.0.0.1:10591"`
 	LogLevel     string `long:"loglevel"     description:"Logging level (trace|debug|info|warn|error|critical)" default:"info"`
 	DataDir      string `long:"datadir"      description:"Directory for database and config files"`
 	ConfigFile   string `long:"configfile"   short:"C" description:"Path to config file"`
